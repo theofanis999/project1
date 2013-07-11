@@ -194,11 +194,6 @@
 % (changes_count(i,t) was always zero!)
 % 3) Now it is also cumulative
 %%%%%%%%%%%%%%%%%%
-% 03.06.13 19:30
-% Modified bursty noise from
-% FLAP(t) to FLAP(node,t,iteration)
-%%%%%%%%%%%%%%%%%%
-
 clear
 % clc
 
@@ -221,7 +216,7 @@ STATES = [1 2 3 4 5 6];
 N = 50; % number of nodes
 N2 = N*N;
 % b0 = BETAS(10); % original beta
-T = 600; % number of temporal iterations
+T = 80; % number of temporal iterations
 I = 1; % number of originally infected nodes
 loss = 0.8; % this is essentially BER (attention, not PER!!)
 %gaussianoise = randn(1);   %no need to define here
@@ -239,7 +234,7 @@ bitRxcost = 110; %bit reception energy cost in nJ
 instructioncost = 4;
 nb = 45; %amplitude of noise burst
 trainprob = 0.2; %probability that a noise burst occurs
-iterations = 10; %algorithm's iterations
+iterations = 100; %algorithm's iterations
 numberofthresholds = 8; % number of SNR limits - switching thresholds
 startingmode = 3;
 resetsize=7;
@@ -334,23 +329,17 @@ end
 % Flapping function; it's a square function
 % Moved it out of the loop for simplicity
 
-FLAP=zeros(N,T,iterations);
-ft = int16(5*rand(N,T,iterations));        % burst duration
-jitter = -1 + 2*int16(10*rand(N,T,iterations));% jitter of burst start
-
-for iteration100 = 1:iterations
-    for node100 = 1:N
-        for f = 1:T
-            if mod(f,25) == 0
-                for ff = f+jitter(node100,f,iteration100):f+ft(node100,f,iteration100)
-                    FLAP(node100,ff,iteration100) = 2;
-                end
-            else
-                % do nothing
-            end
-        end
-    end
-end
+ ft = 3; % flapping duration
+ for f = 1:T
+     if mod(f,25) == 0
+         for ff = f:f+ft+5  % guard time
+             FLAP(ff) = 2;
+         end
+     else
+         % do nothing
+     end
+     
+ end
 
 %
 
@@ -408,6 +397,24 @@ end % iindexx
          POLICYCHOSENI(iteration,policyindex)=0;
      end
 
+% POLICYCHOSENI=0;
+
+% Flapping function; it's a square function
+% Moved it out of the loop for simplicity
+% 
+%  ft = 3; % flapping duration
+%  for f = 1:T
+%      if mod(f,25) == 0
+%          for ff = f:f+ft
+%              FLAP(ff) = 2;
+%          end
+%      else
+%          % do nothing
+%      end
+%      
+%  end
+% 
+% %
     
     for t=1:T;
         DUPT(t,iteration)=0;
@@ -626,7 +633,7 @@ CHANSTATET(t,:,:) = CHANSTATE;
             for othernode = 1: N % othernode
                 if CHANSTATE(node,othernode)~=7
                     NOISEPURE(node,othernode) = (  NOISELIMITS(CHANSTATE(node,othernode)) + ( NOISELIMITS(CHANSTATE(node,othernode)+1)-NOISELIMITS(CHANSTATE(node,othernode))   )*randn(1,1)  ); % noise randmoly between limits
-                    NOISE(node,othernode) = (1+FLAP(node,t,iteration)) * NOISEPURE(node,othernode); % noise randmoly between limits
+                    NOISE(node,othernode) = (1+FLAP(t)) * NOISEPURE(node,othernode); % noise randmoly between limits
 %                     NOISE(node,othernode) = NOISEPURE(node,othernode); % no BURSTY noise
                 else
                     if CHANSTATE(node,othernode)==7
@@ -1118,11 +1125,11 @@ end % iteration
 xx=clock;
 hour=num2str(xx(4));
 minu=num2str(xx(5));
-diary(strcat('AAMC207_',date,'_',hour,'_',minu,'.csv'));
+diary(strcat('AAMC206_',date,'_',hour,'_',minu,'.csv'));
 diary on;
 
-% disp('start timestamp:');
-% xx
+disp('start timestamp:');
+xx
 
         disp('===Input===');
         disp('AMC and adaptive beta - OUR scheme!!');
@@ -1413,4 +1420,4 @@ ER = sum(ERRRATEI,1)/iterations;
 disp('=========');
 disp('===OUR SCHEME W/ METRIC METRIC7===');
 disp('== END ==')
-save AAMC207_metric7_aggressive
+save AAMC206_metric7_aggressive
