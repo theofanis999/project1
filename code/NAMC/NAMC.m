@@ -1,7 +1,7 @@
 % This has NO sigmoid adaptive beta scheme.
 % Also contains a cure mechanism & energy calculations with overhead taken
 % into account.
-% PER calculation is based on SNRLIMITS taken directly from Giannaki
+% D A M A G E D  O N  P U R P O S E ! ! !
 % result!
 % Uses new MASS algorithm from April 4th
 % Implements use of AMC and adaptive beta <------------*
