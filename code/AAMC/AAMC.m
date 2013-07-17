@@ -232,8 +232,11 @@
 % ...script can be called with arguments.
 % 'aggressiveness' is an argument
 %%%%%%%%%%%%%%%%%%
+% 18.07.13 01:47
+% COunt of iterations also became an argument
+%%%%%%%%%%%%%%%%%%
 
-function []=AAMC(aggressiveness);
+function []=AAMC(aggressiveness,iterations);
 %clear
 clc
 
@@ -274,7 +277,7 @@ bitRxcost = 110; %bit reception energy cost in nJ
 instructioncost = 4;
 nb = 45; %amplitude of noise burst
 trainprob = 0.2; %probability that a noise burst occurs
-iterations = 2; %algorithm's iterations
+%iterations = 2; %algorithm's iterations
 numberofthresholds = 8; % number of SNR limits - switching thresholds
 startingmode = 3;
 resetsize=7;
@@ -290,7 +293,7 @@ if aggressiveness == 1
 else if aggressiveness == 2
         aggressistring = 'conservative';
     else
-        aggressistring == 'sleepy';
+        aggressistring = 'sleepy';
     end
 end
 
@@ -1197,7 +1200,7 @@ hour=num2str(xx(4));
 minu=num2str(xx(5));
 aggress=num2str(aggressiveness);
 filenamepart = ['AAMC_' aggressistring];
-diary(strcat(filenamepart,'_metric4_',date,'_',hour,'_',minu,'.csv'));
+diary(strcat(filenamepart,'_metric4_',iterations,'_',date,'_',hour,'_',minu,'.csv'));
 
 diary on;
 
@@ -1511,7 +1514,7 @@ disp('===OUR SCHEME W/ METRIC METRIC4===');
 disp('== END ==')
 %save AAMC212_metric4 % file saving moved to master file
 
-filename = ['AAMC_' aggressistring '_metric4_' date hour minu '.mat'];
+filename = ['AAMC_' aggressistring '_metric4_' iterations '_' date '_' hour '_' minu '.mat'];
 save(filename);
 
 end % to end function call
