@@ -288,7 +288,7 @@ maxcostsingle = 1.8*pktsize*bitTxcost; % this is max cost for a SINGLE transmiss
 if aggressiveness == 1
     aggressistring = 'aggressive';
 else if aggressiveness == 2
-        aggresistring = 'conservative';
+        aggressistring = 'conservative';
     else
         aggressistring == 'sleepy';
     end
@@ -1419,6 +1419,8 @@ ER = sum(ERRRATEI,1)/iterations;
 
     si = sum(mean(SUCCESSFUL_INF_COUNT_GLOBAL,1));
     g_eff = pktsize*si/e2fc; % effective goodput;
+    str15=['Effective Goodput', 'Effective Goodput',num2str(g_eff)];
+    disp(str15);
 
       disp('POLICY popularities are:');
       OUTPOLICYPOPU=mean(POLICYCHOSENI);
@@ -1504,12 +1506,12 @@ ER = sum(ERRRATEI,1)/iterations;
         yy-zz        
 disp('=========');
 disp(' AGGRESSIVENESS WAS ');
-disp(aggressiveness);
+disp(aggressistring);
 disp('===OUR SCHEME W/ METRIC METRIC4===');
 disp('== END ==')
 %save AAMC212_metric4 % file saving moved to master file
 
-filename = ['AAMC_' aggressistring '_metric4.mat'];
+filename = ['AAMC_' aggressistring '_metric4_' date hour minu '.mat'];
 save(filename);
 
 end % to end function call
