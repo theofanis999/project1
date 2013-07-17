@@ -227,8 +227,14 @@
 % It DOES NOT include effective utility = utility - utility_if_no_change
 %
 %%%%%%%%%%%%%%%%%%
+% 18.07.13 00:57
+% Introduced function [] in first line so that....
+% ...script can be called with arguments.
+% 'aggressiveness' is an argument
+%%%%%%%%%%%%%%%%%%
 
-clear
+function []=AAMC(aggressiveness);
+%clear
 clc
 
 zz = clock;
@@ -278,8 +284,15 @@ startingchannelstate = 3;
 ebase =2718; % t/T > 1/ebase is the theshold for the opt stop condition eval 2 start
 actualtime = 0;
 maxcostsingle = 1.8*pktsize*bitTxcost; % this is max cost for a SINGLE transmission
-aggressiveness = 3;
-
+%aggressiveness = 3;
+if aggressiveness == 1
+    aggressistring = 'aggressive';
+else if aggressiveness == 2
+        aggresistring = 'conservative';
+    else
+        aggressistring == 'sleepy';
+    end
+end
 
 berrors = 0;
 bergood = 0;
@@ -1183,7 +1196,9 @@ xx=clock;
 hour=num2str(xx(4));
 minu=num2str(xx(5));
 aggress=num2str(aggressiveness);
-diary(strcat('AAMC212_metric4_',aggress,'_',date,'_',hour,'_',minu,'.csv'));
+filenamepart = ['AAMC_' aggressistring];
+diary(strcat(filenamepart,'_metric4_',date,'_',hour,'_',minu,'.csv'));
+
 diary on;
 
 disp('start timestamp:');
@@ -1490,6 +1505,11 @@ ER = sum(ERRRATEI,1)/iterations;
 disp('=========');
 disp(' AGGRESSIVENESS WAS ');
 disp(aggressiveness);
-disp('===OUR SCHEME W/ METRIC METRIC7===');
+disp('===OUR SCHEME W/ METRIC METRIC4===');
 disp('== END ==')
-save AAMC212_metric4
+%save AAMC212_metric4 % file saving moved to master file
+
+filename = ['AAMC_' aggressistring '_metric4.mat'];
+save(filename);
+
+end % to end function call
