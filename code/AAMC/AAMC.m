@@ -1200,7 +1200,7 @@ hour=num2str(xx(4));
 minu=num2str(xx(5));
 aggress=num2str(aggressiveness);
 filenamepart = ['AAMC_' aggressistring];
-diary(strcat(filenamepart,'_metric4_',iterations,'_',date,'_',hour,'_',minu,'.csv'));
+diary(strcat(filenamepart,'_metric4_',num2str(iterations),'_',date,'_',hour,'_',minu,'.csv'));
 
 diary on;
 
@@ -1422,7 +1422,7 @@ ER = sum(ERRRATEI,1)/iterations;
 
     si = sum(mean(SUCCESSFUL_INF_COUNT_GLOBAL,1));
     g_eff = pktsize*si/e2fc; % effective goodput;
-    str15=['Effective Goodput', 'Effective Goodput',num2str(g_eff)];
+    str15=['Effective Goodput, ', 'Effective Goodput, ',num2str(g_eff)];
     disp(str15);
 
       disp('POLICY popularities are:');
@@ -1514,7 +1514,7 @@ disp('===OUR SCHEME W/ METRIC METRIC4===');
 disp('== END ==')
 %save AAMC212_metric4 % file saving moved to master file
 
-filename = ['AAMC_' aggressistring '_metric4_' iterations '_' date '_' hour '_' minu '.mat'];
+filename = ['AAMC_' aggressistring '_metric4_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
 save(filename);
 
 end % to end function call
