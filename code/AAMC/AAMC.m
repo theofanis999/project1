@@ -194,8 +194,42 @@
 % (changes_count(i,t) was always zero!)
 % 3) Now it is also cumulative
 %%%%%%%%%%%%%%%%%%
+% 03.06.13 19:30
+% Modified bursty noise from
+% FLAP(t) to FLAP(node,t,iteration)
+%%%%%%%%%%%%%%%%%%
+% 04.06.13 23:30
+% Introduced SUCCESSFUL_INF_COUNT
+%%%%%%%%%%%%%%%%%%
+% 10.07.13 19:20
+% Introduced DUPRATE_NO_TIE(i,t) and....
+% ...its average over a sliding temporal window
+%%%%%%%%%%%%%%%%%%
+% 16.07.13 19:00
+% MERGING OF AAMC208.m & AAMC210.m
+% This script comes from AAMC208.m and additionally
+% contains the following improvements from AAMC210.m:
+% % % % % % % % % % % % % % % % % 
+% 21.06.2013 20:51
+% The calculation of METRIC7...
+% ... was modified to include...
+% DUPRATE_NO_TIES(i) instead of DUPRATE(i)
+% in order to resolve ties!
+% % % % %  % % % %  % % % %  % % %
+% 24.06.13 23:58
+% Minor bug correction:
+% OUTPOLICYPOPU=mean(POLICYCHOSENI,1);
+% instead of...
+% OUTPOLICYPOPU=mean(POLICYCHOSENI);
+% Crashes when u run with 1 iteration (for testing)
+% % % % %  % % % %  % % % %  % % %
+%
+% It DOES NOT include effective utility = utility - utility_if_no_change
+%
+%%%%%%%%%%%%%%%%%%
+
 clear
-% clc
+clc
 
 zz = clock;
 disp('start timestamp:');
@@ -234,7 +268,7 @@ bitRxcost = 110; %bit reception energy cost in nJ
 instructioncost = 4;
 nb = 45; %amplitude of noise burst
 trainprob = 0.2; %probability that a noise burst occurs
-iterations = 100; %algorithm's iterations
+iterations = 2; %algorithm's iterations
 numberofthresholds = 8; % number of SNR limits - switching thresholds
 startingmode = 3;
 resetsize=7;
@@ -244,13 +278,16 @@ startingchannelstate = 3;
 ebase =2718; % t/T > 1/ebase is the theshold for the opt stop condition eval 2 start
 actualtime = 0;
 maxcostsingle = 1.8*pktsize*bitTxcost; % this is max cost for a SINGLE transmission
+aggressiveness = 3;
+
 
 berrors = 0;
 bergood = 0;
 disp('  ');
 disp('===RUNNING===')
 disp('Our policy-choice-based model')
-
+disp('aggressiveness');
+disp(aggressiveness);
  % SNRLIMITS calculation:
  
  %This holds for uncoded transmission
@@ -309,6 +346,7 @@ end
 for iuiu = 1:7
     NOISELIMITS(iuiu)=signal/SNRLIMITS(iuiu);
 end
+SUCCESSFUL_INF_COUNT_GLOBAL = zeros(iterations,N);
 
 % These are the above from Giannaki doped +20%
 
@@ -329,17 +367,23 @@ end
 % Flapping function; it's a square function
 % Moved it out of the loop for simplicity
 
- ft = 3; % flapping duration
- for f = 1:T
-     if mod(f,25) == 0
-         for ff = f:f+ft+5  % guard time
-             FLAP(ff) = 2;
-         end
-     else
-         % do nothing
-     end
-     
- end
+FLAP=zeros(N,T,iterations);
+ft = int16(5*rand(N,T,iterations));        % burst duration
+jitter = -1 + 2*int16(10*rand(N,T,iterations));% jitter of burst start
+
+for iteration100 = 1:iterations
+    for node100 = 1:N
+        for f = 1:T
+            if mod(f,25) == 0
+                for ff = f+jitter(node100,f,iteration100):f+ft(node100,f,iteration100)
+                    FLAP(node100,ff,iteration100) = 2;
+                end
+            else
+                % do nothing
+            end
+        end
+    end
+end
 
 %
 
@@ -355,7 +399,7 @@ for iteration = 1:iterations
 % SSS(node,chosen_policy)
 SSS = zeros(N,4)+0.25;
 changes_count = zeros(N,T);
-
+SUCCESSFUL_INF_COUNT = zeros(1,N);
 % % S(node,orig_beta,orig_mode,final_beta,final_mode)
 % S = zeros(N,length(BETAS),length(MODES),length(BETAS),length(MODES));
 
@@ -397,24 +441,6 @@ end % iindexx
          POLICYCHOSENI(iteration,policyindex)=0;
      end
 
-% POLICYCHOSENI=0;
-
-% Flapping function; it's a square function
-% Moved it out of the loop for simplicity
-% 
-%  ft = 3; % flapping duration
-%  for f = 1:T
-%      if mod(f,25) == 0
-%          for ff = f:f+ft
-%              FLAP(ff) = 2;
-%          end
-%      else
-%          % do nothing
-%      end
-%      
-%  end
-% 
-% %
     
     for t=1:T;
         DUPT(t,iteration)=0;
@@ -454,8 +480,18 @@ end % node11 ...is an index only
          TM = ans.TM_ave;
          clear ans;
         % importing data according to SoS model end
-
-
+        
+        % The following small initialisation was in the nodes loop!!
+        % 101% needless!
+       for t=1:T;
+            nodenoise(t) = 0; % dummy initialization of nodenoise
+            g(t)=0.5*randn(1);
+       end        
+        
+        DUPRATE_NO_TIE_INS = 0.01*abs(randn(N,T));
+%         DUPRATE_NO_TIE_INS = zeros(N,T);        
+        DUPRATE_NO_TIE = zeros(N,T);
+        
 	for node = 1:N
 %         B(node) = b0;
         B(node) = BETAS(int16(length(BETAS)*randobeta(node))); % random original beta
@@ -468,6 +504,7 @@ end % node11 ...is an index only
 	    DUP(node)=0;
 	    DUPTEMP(node)=0;
 	    BTEMP(node)=0;
+        SUCCESSFUL_INF_COUNT_TEMP(node) = 0;
 	    % MODE(node)=startingmode; %initialise matrix with encoding modes
         MODE(node)= MODES(int16(length(MODES)*randomode(node))); % random original mode
 	    MODETEMP(node)= MODE(node); % arbitrary; value plays no role
@@ -481,10 +518,10 @@ end % node11 ...is an index only
         % One state for each SNR interval.
         WINDOW(node) = 1;
 
-        for t=1:T;
-            nodenoise(t) = 0; % dummy initialization of nodenoise
-            g(t)=0.5*randn(1);
-        end
+%         for t=1:T;
+%             nodenoise(t) = 0; % dummy initialization of nodenoise
+%             g(t)=0.5*randn(1);
+%         end
      
         % importing data according to SoS model start
 
@@ -511,6 +548,7 @@ end % node11 ...is an index only
         DOWNMODE(node) = 0;
         UPMODE(node) = 0;   
         DUPRATE(node) = 0;
+%         DUPRATE_NO_TIE(node) = 0.01*abs(randn(1)) + 0;        
         ERRRATE(node) = 0;
         ERRRATETEMP(node) = 0;
         DUPRATETEMP(node) = 0;
@@ -530,6 +568,9 @@ end % node11 ...is an index only
 %             BDET(t,node) = b0; % BDET(= beta detailed) like B(node) but keeps temporal evolution too
             BDET(t,node) = B(node); % BDET(= beta detailed) like B(node) but keeps temporal evolution too            
         end
+        
+        MODESTART = MODE;      
+        
         for policyindex=1:4
             POLICYCHOSEN(node,policyindex) = 0;
         end
@@ -633,7 +674,7 @@ CHANSTATET(t,:,:) = CHANSTATE;
             for othernode = 1: N % othernode
                 if CHANSTATE(node,othernode)~=7
                     NOISEPURE(node,othernode) = (  NOISELIMITS(CHANSTATE(node,othernode)) + ( NOISELIMITS(CHANSTATE(node,othernode)+1)-NOISELIMITS(CHANSTATE(node,othernode))   )*randn(1,1)  ); % noise randmoly between limits
-                    NOISE(node,othernode) = (1+FLAP(t)) * NOISEPURE(node,othernode); % noise randmoly between limits
+                    NOISE(node,othernode) = (1+FLAP(node,t,iteration)) * NOISEPURE(node,othernode); % noise randmoly between limits
 %                     NOISE(node,othernode) = NOISEPURE(node,othernode); % no BURSTY noise
                 else
                     if CHANSTATE(node,othernode)==7
@@ -698,6 +739,7 @@ CHANSTATET(t,:,:) = CHANSTATE;
 	                       if channel > PER(i,j) %loss - PER(i,j) NOW! i=src, j=dst   ***PER(i,j)
 	                           if A(j)==0
 	                               ATEMP(j)=1;
+                                   SUCCESSFUL_INF_COUNT_TEMP(j) = SUCCESSFUL_INF_COUNT(j)+1;
 	                           else
 	                               DUPTEMP(j)=DUP(j)+1;
 	                           end
@@ -758,9 +800,18 @@ end
 
 % Start of sliding window calculation
 
-    swindow = 1;
+    if aggressiveness == 1
+        swindow = 1;
+    else if aggressiveness == 2
+        swindow = min(3,t-1);
+        else
+            swindow = min(WINDOW(i),t-1);
+        end
+    end
+        
+    %swindow = 1;
     %swindow = min(3,t-1);
-    %swindow = min(WINDOW(i),t-1);
+%     swindow = min(WINDOW(i),t-1);
     %swindow = min(2*WINDOW(i),t-1);
     %swindow = t-1;
     
@@ -773,6 +824,7 @@ end
     AVENOISET(i,t) = mean(RECENTNOISE(i,t-swindow:t));
     RECENTUT(i,t-swindow:t) = U(i,t-swindow:t);
     AVEUT(i,t) = mean(RECENTUT(i,t-swindow:t));
+    DUPRATE_NO_TIE(i,t) = mean(DUPRATE_NO_TIE_INS(i,t-fix(0.2*swindow):t));
     
     
 % End of sliding window calculation
@@ -859,11 +911,13 @@ end
   for policyindexx  = 1:4;
 %    METRIC1(policyindexx,i) = PINF(policyindexx,i)/ENERGYSPENTCALC(policyindexx,i);
 %    METRIC2(policyindexx,i) = PINF(policyindexx,i);
-%    METRIC4(policyindexx,i) = PINF(policyindexx,i) - ENERGYSPENT(i)/(maxcostsingle*t);
+     METRIC4(policyindexx,i) = PINF(policyindexx,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+     METRIC45(policyindexx,i) = PINF(policyindexx,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
 %    METRIC5(policyindexx,i) = PINF(policyindexx,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*(t+1));  % modification to include the next time slot
 %    METRIC3(policyindexx,i) = PINF(policyindexx,i)*(maxcostsingle-ENERGYSPENTCALC(policyindexx,i));  % 2*10^7 is an arbitary maximum cost
-%   METRIC6(policyindexx,i) = DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t);
-    METRIC7(policyindexx,i) = DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+%    METRIC6(policyindexx,i) = DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t);
+%    METRIC7(policyindexx,i) = DUPRATE_NO_TIE(i,t) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+%    METRIC7(policyindexx,i) = DUPRATE_NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
   end
 %   if changes_count(i,max(1,t-1))~=0
 %       disp('PLOF-PLOF!!');
@@ -876,14 +930,14 @@ end
  % Calculate expected Utility over all possible future choices
  %  UUNCH(i,t) = 0.25*(METRIC6(1,i) + METRIC6(2,i) + METRIC6(3,i) + METRIC6(4,i) );
  % UUNCH(i,t) = (SSS(i,1)/t)*METRIC6(1,i) + (SSS(i,2)/t)*METRIC6(2,i) + (SSS(i,3)/t)*METRIC6(3,i) + (SSS(i,4)/t)*METRIC6(4,i);
- UUNCH(i,t) = (SSS(i,1)/t)*METRIC7(1,i) + (SSS(i,2)/t)*METRIC7(2,i) + (SSS(i,3)/t)*METRIC7(3,i) + (SSS(i,4)/t)*METRIC7(4,i);
+ UUNCH(i,t) = (SSS(i,1)/t)*METRIC4(1,i) + (SSS(i,2)/t)*METRIC4(2,i) + (SSS(i,3)/t)*METRIC4(3,i) + (SSS(i,4)/t)*METRIC4(4,i);
 
  %
   
   for jjj = 1:4                  % policy index
 %       MMM(jjj) = METRIC3(jjj,i);  % Vector with policies of the current node
 %       MMM(jjj) = METRIC6(jjj,i);  % Vector with policies of the current node
-      MMM(jjj) = METRIC7(jjj,i);  % Vector with policies of the current node
+      MMM(jjj) = METRIC4(jjj,i);  % Vector with policies of the current node
 
   end
   
@@ -896,11 +950,11 @@ end
         
         for pindex  = 1:4;              % yes, policy index
            %    if metric == PINF(pindex,i)*(maxcostsingle-ENERGYSPENTCALC(pindex,i))  %  mitrechnen Energie & Infekzionprobabilitaet METRIC3
-           %    if metric == PINF(pindex,i) - ENERGYSPENT(i)/(maxcostsingle*t); % METRIC 4
+               if metric == PINF(pindex,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1)); % METRIC 4
            %    if metric == PINF(pindex,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*(t+1)); % modif 2 inc next t-slot METRIC5
            %    if metric == DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t); % METRIC6
-           if metric == DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1)); % METRIC7
-          
+					 %	if metric == DUPRATE_NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(pindex,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));  % METRIC7
+         
                     % Calculation of potential benefit/reward/utility - start
                     
 %                      UTEMP(i,t) = PINF(pindex,i) - ENERGYSPENT(i)/(maxcostsingle*t);
@@ -978,6 +1032,7 @@ end
 	    RX = RXTEMP;
 	    ERR = ERRTEMP;
 	    DUP = DUPTEMP;
+        SUCCESSFUL_INF_COUNT = SUCCESSFUL_INF_COUNT_TEMP;
         
         for node20 = 1:N
             if (MODETEMP(node20) ~= MODE(node20)) | (BTEMP(node20) ~= B(node20))
@@ -993,6 +1048,8 @@ end
 	    MODE = MODETEMP;
         ERRRATE = ERRRATETEMP;
 	    DUPRATE = DUPRATETEMP;
+        DUPRATE_NO_TIE_INS(:,t) = (0.01*abs(randn(1))+1)*DUPRATE'; 
+%          DUPRATE_NO_TIE_INS(:,t) = DUPRATE';         
         MODEDET(t,:)=MODE;
         BDET(t,:)=B;        
 %         CHANSTATE = CHANSTATETEMP;
@@ -1117,7 +1174,7 @@ end
     end
     
     changes_count_global(:,:,iteration) = changes_count;
-    
+    SUCCESSFUL_INF_COUNT_GLOBAL(iteration,:) = SUCCESSFUL_INF_COUNT;
 %     POLICYCHOSENI(iteration) = mean(POLICYCHOSEN);%ioioioioio
     
 end % iteration  
@@ -1125,7 +1182,8 @@ end % iteration
 xx=clock;
 hour=num2str(xx(4));
 minu=num2str(xx(5));
-diary(strcat('AAMC206_',date,'_',hour,'_',minu,'.csv'));
+aggress=num2str(aggressiveness);
+diary(strcat('AAMC212_metric4_',aggress,'_',date,'_',hour,'_',minu,'.csv'));
 diary on;
 
 disp('start timestamp:');
@@ -1138,7 +1196,8 @@ xx
         disp('Beta orig');
         disp(randobeta);
         disp('Starting mode');
-        disp(startingmode);        
+%         disp(startingmode);  
+        disp(MODESTART);
         disp('Temporal duration');
         disp(T);
 %         disp('signal');
@@ -1160,9 +1219,10 @@ xx
         disp('sliding window at simulation conclusion');
         disp(WINDOW);
         disp('temporal threshold to start optimal stopping conditionevaluation');
-        disp(1/ebase);
-        
-        
+%         disp(1/ebase);
+        disp('aggressiveness');
+        disp(aggressiveness);
+          
         
     disp('===Output===');
 %start calculate mode popularity  
@@ -1335,6 +1395,16 @@ ER = sum(ERRRATEI,1)/iterations;
     str13=['Infection rate,  ', ' Infection rate, ' ,num2str(Iavevstime(T))];    
     disp(str13);
     
+    str14 = ['Count of successful infections, ', 'Count of successful infections, ' ,num2str(  sum(  mean(SUCCESSFUL_INF_COUNT_GLOBAL,1)       )   )];
+    disp(str14);
+%     SUCCESSFUL_INF_COUNT_vs_TIME = mean(SUCCESSFUL_INF_COUNT_GLOBAL,1);
+%     SUCCESSFUL_INF_COUNT_FINAL = sum(SUCCESSFUL_INF_COUNT_vs_TIME);
+%     disp('Count of successful infections') = SUCCESSFUL_INF_COUNT_FINAL;
+
+
+    si = sum(mean(SUCCESSFUL_INF_COUNT_GLOBAL,1));
+    g_eff = pktsize*si/e2fc; % effective goodput;
+
       disp('POLICY popularities are:');
       OUTPOLICYPOPU=mean(POLICYCHOSENI);
 %     disp('keep mode-change beta, change mode-keep beta, change
@@ -1418,6 +1488,8 @@ ER = sum(ERRRATEI,1)/iterations;
         disp('duration');
         yy-zz        
 disp('=========');
+disp(' AGGRESSIVENESS WAS ');
+disp(aggressiveness);
 disp('===OUR SCHEME W/ METRIC METRIC7===');
 disp('== END ==')
-save AAMC206_metric7_aggressive
+save AAMC212_metric4
