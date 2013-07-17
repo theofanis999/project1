@@ -2,6 +2,9 @@ clear
 clc
 pwd
 ls
-AAMC(1)
-AAMC(2)
-AAMC(3)
+AAMC(1,2)
+AAMC(2,2)
+AAMC(3,2)
+AAMC(1,100)
+AAMC(2,100)
+AAMC(3,100)
