@@ -233,12 +233,14 @@
 % 'aggressiveness' is an argument
 %%%%%%%%%%%%%%%%%%
 % 18.07.13 01:47
-% COunt of iterations also became an argument
+% Count of iterations also became an argument
 %%%%%%%%%%%%%%%%%%
-
+% 18.07.13 16:27
+% Commented out the *clc* line at the beginning
+%%%%%%%%%%%%%%%%%%
 function []=AAMC(aggressiveness,iterations);
 %clear
-clc
+%clc
 
 zz = clock;
 disp('start timestamp:');
