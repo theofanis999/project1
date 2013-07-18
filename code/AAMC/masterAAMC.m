@@ -3,8 +3,14 @@ clc
 pwd
 ls
 AAMC(1,2)
+clear
 AAMC(2,2)
+clear
 AAMC(3,2)
+clear
 AAMC(1,100)
+clear
 AAMC(2,100)
+clear
 AAMC(3,100)
+clear
