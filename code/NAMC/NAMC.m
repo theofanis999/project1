@@ -1,7 +1,7 @@
 % This has NO sigmoid adaptive beta scheme.
 % Also contains a cure mechanism & energy calculations with overhead taken
 % into account.
-% D A M A G E D  O N  P U R P O S E ! ! !
+% PER calculation is based on SNRLIMITS taken directly from Giannaki
 % result!
 % Uses new MASS algorithm from April 4th
 % Implements use of AMC and adaptive beta <------------*
@@ -198,9 +198,20 @@
 % Modified bursty noise from
 % FLAP(t) to FLAP(node,t,iteration)
 %%%%%%%%%%%%%%%%%%
-clear
+% 21.07.13 12:55
+% Based on NAMC208
+% 1. Made it callable with 
+% iterations & time (T)
+% as arguments
+% 2. The starting *clear* line is deleted!
+% Careful to *clear* before running, as follows:
+% > clear
+% > run NAMC(80,100)
+% 3. Changed filename when saving.
+%%%%%%%%%%%%%%%%%%%
+% clear
 % clc
-
+function [] =NAMC(T,iterations);
 zz = clock;
 disp('start timestamp:');
 zz
@@ -220,7 +231,7 @@ STATES = [1 2 3 4 5 6];
 N = 50; % number of nodes
 N2 = N*N;
 % b0 = BETAS(10); % original beta
-T = 600; % number of temporal iterations
+%T = 600; % number of temporal iterations  <-----
 I = 1; % number of originally infected nodes
 loss = 0.8; % this is essentially BER (attention, not PER!!)
 %gaussianoise = randn(1);   %no need to define here
@@ -238,7 +249,7 @@ bitRxcost = 110; %bit reception energy cost in nJ
 instructioncost = 4;
 nb = 45; %amplitude of noise burst
 trainprob = 0.2; %probability that a noise burst occurs
-iterations = 10; %algorithm's iterations
+%iterations = 10; %algorithm's iterations <-----
 numberofthresholds = 8; % number of SNR limits - switching thresholds
 startingmode = 3;
 resetsize=7;
@@ -1142,13 +1153,14 @@ end % iteration
 xx=clock;
 hour=num2str(xx(4));
 minu=num2str(xx(5));
-diary(strcat('NAMC208_',date,'_',hour,'_',minu,'.csv'));
+diary(strcat('NAMC_',date,'_',hour,'_',minu,'.csv'));
 diary on;
 
 %disp('start timestamp:');
 %xx
 
         disp('===Input===');
+	disp('YES this IS based on NAMC208!!')
         disp('Stable beta and Mode acc.to STATIC AMC - Yannakis scheme!!');
         disp('Number of nodes');
         disp(N);
@@ -1434,6 +1446,10 @@ ER = sum(ERRRATEI,1)/iterations;
         disp('duration');
         yy-zz          
 disp('=========');
-disp('===Yannakis SCHEME W/ METRIC METRIC7===');
+disp('===Yannakis SCHEME ===');
 disp('== END ==')
-save NAMC208_static
+% save NAMC208_static_callable
+ilename = ['NAMC_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
+save(filename);
+
+end
