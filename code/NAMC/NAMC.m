@@ -213,7 +213,7 @@
 % Introduced SUCCESSFUL_INF_COUNT
 % Introduced effective goodput (g_eff) calculation
 % Watch line:
-% " % MODESTART = MODE;  % do we need this here?"  Do we??
+% " % MODESTART = MODE;  % do we need this here?" Do we??
 %%%%%%%%%%%%%%%%%%%
 
 % clear
