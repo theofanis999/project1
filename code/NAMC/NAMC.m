@@ -209,6 +209,13 @@
 % > run NAMC(80,100)
 % 3. Changed filename when saving.
 %%%%%%%%%%%%%%%%%%%
+% 22.07.13 19:56
+% Introduced SUCCESSFUL_INF_COUNT
+% Introduced effective goodput (g_eff) calculation
+% Watch line:
+% " % MODESTART = MODE;  % do we need this here?"  Do we??
+%%%%%%%%%%%%%%%%%%%
+
 % clear
 % clc
 function [] =NAMC(T,iterations);
@@ -324,6 +331,7 @@ end
 for iuiu = 1:7
     NOISELIMITS(iuiu)=signal/SNRLIMITS(iuiu);
 end
+SUCCESSFUL_INF_COUNT_GLOBAL = zeros(iterations,N);
 
 % These are the above from Giannaki doped +20%
 
@@ -376,7 +384,7 @@ for iteration = 1:iterations
 % SSS(node,chosen_policy)
 SSS = zeros(N,4)+0.25;
 changes_count = zeros(N,T);
-
+SUCCESSFUL_INF_COUNT = zeros(1,N);
 % % S(node,orig_beta,orig_mode,final_beta,final_mode)
 % S = zeros(N,length(BETAS),length(MODES),length(BETAS),length(MODES));
 
@@ -476,6 +484,16 @@ end % node11 ...is an index only
          clear ans;
         % importing data according to SoS model end
 
+        % The following small initialisation was in the nodes loop!!
+        % 101% needless!
+       for t=1:T;
+            nodenoise(t) = 0; % dummy initialization of nodenoise
+            g(t)=0.5*randn(1);
+       end        
+        
+        DUPRATE_NO_TIE_INS = 0.01*abs(randn(N,T));
+%         DUPRATE_NO_TIE_INS = zeros(N,T);        
+        DUPRATE_NO_TIE = zeros(N,T);
 
 	for node = 1:N
 %         B(node) = b0;
@@ -489,6 +507,7 @@ end % node11 ...is an index only
 	    DUP(node)=0;
 	    DUPTEMP(node)=0;
 	    BTEMP(node)=0;
+      SUCCESSFUL_INF_COUNT_TEMP(node) = 0;	    
 	    % MODE(node)=startingmode; %initialise matrix with encoding modes
         MODE(node)= MODES(int16(length(MODES)*randomode(node))); % random original mode
 	    MODETEMP(node)= MODE(node); % arbitrary; value plays no role
@@ -502,10 +521,10 @@ end % node11 ...is an index only
         % One state for each SNR interval.
         WINDOW(node) = 1;
 
-        for t=1:T;
-            nodenoise(t) = 0; % dummy initialization of nodenoise
-            g(t)=0.5*randn(1);
-        end
+%        for t=1:T;
+%            nodenoise(t) = 0; % dummy initialization of nodenoise
+%            g(t)=0.5*randn(1);
+%        end
      
         % importing data according to SoS model start
 
@@ -551,6 +570,9 @@ end % node11 ...is an index only
 %             BDET(t,node) = b0; % BDET(= beta detailed) like B(node) but keeps temporal evolution too
             BDET(t,node) = B(node); % BDET(= beta detailed) like B(node) but keeps temporal evolution too            
         end
+        
+%        MODESTART = MODE;              % do we need this here?
+        
         for policyindex=1:4
             POLICYCHOSEN(node,policyindex) = 0;
         end
@@ -719,6 +741,7 @@ CHANSTATET(t,:,:) = CHANSTATE;
 	                       if channel > PER(i,j) %loss - PER(i,j) NOW! i=src, j=dst   ***PER(i,j)
 	                           if A(j)==0
 	                               ATEMP(j)=1;
+                                   SUCCESSFUL_INF_COUNT_TEMP(j) = SUCCESSFUL_INF_COUNT(j)+1;	                               
 	                           else
 	                               DUPTEMP(j)=DUP(j)+1;
 	                           end
@@ -806,7 +829,7 @@ end
     AVENOISET(i,t) = mean(RECENTNOISE(i,t-swindow:t));
     RECENTUT(i,t-swindow:t) = U(i,t-swindow:t);
     AVEUT(i,t) = mean(RECENTUT(i,t-swindow:t));
-    
+    DUPRATE_NO_TIE(i,t) = mean(DUPRATE_NO_TIE_INS(i,t-fix(0.2*swindow):t));    
     
 % End of sliding window calculation
 
@@ -1006,6 +1029,7 @@ end
 	    RX = RXTEMP;
 	    ERR = ERRTEMP;
 	    DUP = DUPTEMP;
+        SUCCESSFUL_INF_COUNT = SUCCESSFUL_INF_COUNT_TEMP;	    
         
         for node20 = 1:N
             if (MODETEMP(node20) ~= MODE(node20)) | (BTEMP(node20) ~= B(node20))
@@ -1145,7 +1169,7 @@ end
     end
 
     changes_count_global(:,:,iteration) = changes_count;
-    
+    SUCCESSFUL_INF_COUNT_GLOBAL(iteration,:) = SUCCESSFUL_INF_COUNT;    
 %     POLICYCHOSENI(iteration) = mean(POLICYCHOSEN);%ioioioioio
     
 end % iteration  
@@ -1167,7 +1191,8 @@ diary on;
         disp('Beta orig');
         disp(randobeta);
         disp('Starting mode');
-        disp(startingmode);        
+%        disp(startingmode);  
+        disp(MODESTART);              
         disp('Temporal duration');
         disp(T);
 %         disp('signal');
@@ -1305,7 +1330,7 @@ ER = sum(ERRRATEI,1)/iterations;
     disp(downratio*100);     
     
      disp('###############')
-    disp('static scheme, METRIC = duplicates - NEC - mode switch count, AMC with static beta');
+    disp('static scheme');
     disp('**************');        
     Energyspentave = sum(IES)/iterations;
     str1 = ['ETOTAL, average energy spent (average over nodes & iterations)...,',num2str(Energyspentave)];
@@ -1363,6 +1388,14 @@ ER = sum(ERRRATEI,1)/iterations;
     
     str13=['Infection rate,  ', ' Infection rate, ' ,num2str(Iavevstime(T))];    
     disp(str13);
+
+    str14 = ['Count of successful infections, ', 'Count of successful infections, ' ,num2str(  sum(  mean(SUCCESSFUL_INF_COUNT_GLOBAL,1)       )   )];
+    disp(str14);
+
+    si = sum(mean(SUCCESSFUL_INF_COUNT_GLOBAL,1));
+    g_eff = pktsize*si/e2fc; % effective goodput;
+    str15=['Effective Goodput, ', 'Effective Goodput, ',num2str(g_eff)];
+    disp(str15);
     
       disp('POLICY popularities are:');
       OUTPOLICYPOPU=mean(POLICYCHOSENI);
@@ -1450,6 +1483,10 @@ disp('===Yannakis SCHEME ===');
 disp('== END ==')
 % save NAMC208_static_callable
 filename = ['NAMC_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
+save(filename);
+
+end
+ations) '_' date '_' hour '_' minu '.mat'];
 save(filename);
 
 end
