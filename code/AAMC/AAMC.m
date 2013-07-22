@@ -1421,7 +1421,6 @@ ER = sum(ERRRATEI,1)/iterations;
 %     SUCCESSFUL_INF_COUNT_FINAL = sum(SUCCESSFUL_INF_COUNT_vs_TIME);
 %     disp('Count of successful infections') = SUCCESSFUL_INF_COUNT_FINAL;
 
-
     si = sum(mean(SUCCESSFUL_INF_COUNT_GLOBAL,1));
     g_eff = pktsize*si/e2fc; % effective goodput;
     str15=['Effective Goodput, ', 'Effective Goodput, ',num2str(g_eff)];
@@ -1520,3 +1519,4 @@ filename = ['AAMC_' aggressistring '_metric4_' num2str(iterations) '_' date '_' 
 save(filename);
 
 end % to end function call
+
