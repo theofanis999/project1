@@ -1490,7 +1490,3 @@ filename = ['NAMC_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
 save(filename);
 
 end
-ations) '_' date '_' hour '_' minu '.mat'];
-save(filename);
-
-end
