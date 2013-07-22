@@ -215,6 +215,10 @@
 % Watch line:
 % " % MODESTART = MODE;  % do we need this here?" Do we??
 %%%%%%%%%%%%%%%%%%%
+% Uncommented line:
+% " MODESTART = MODE; "
+% It is only used for display reasons in the end
+%%%%%%%%%%%%%%%%%%%
 
 % clear
 % clc
@@ -571,7 +575,7 @@ end % node11 ...is an index only
             BDET(t,node) = B(node); % BDET(= beta detailed) like B(node) but keeps temporal evolution too            
         end
         
-%        MODESTART = MODE;              % do we need this here?
+         MODESTART = MODE;
         
         for policyindex=1:4
             POLICYCHOSEN(node,policyindex) = 0;
