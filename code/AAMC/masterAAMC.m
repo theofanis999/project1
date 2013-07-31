@@ -7,16 +7,16 @@ clear
 clc
 pwd
 ls
-AAMC(1,2)
+AAMC(80,1,100)
 clear
-AAMC(2,2)
+AAMC(80,2,100)
 clear
-AAMC(3,2)
-clear
-AAMC(1,100)
-clear
-AAMC(2,100)
-clear
-AAMC(3,100)
-clear
+AAMC(80,3,100)
+%clear
+%AAMC(250,1,200)
+%clear
+%AAMC(250,2,200)
+%clear
+%AAMC(250,3,200)
+%clear
 diary off
