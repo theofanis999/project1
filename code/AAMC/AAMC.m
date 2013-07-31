@@ -1466,7 +1466,7 @@ ER = sum(ERRRATEI,1)/iterations;
     disp(str133);
     disp(str134);
     
-    diary off;
+
 
     %
 %     disp('### RESULTS IN CSV FORM ###')
@@ -1531,6 +1531,9 @@ disp(' AGGRESSIVENESS WAS ');
 disp(aggressistring);
 disp('===OUR SCHEME W/ METRIC METRIC8===');
 disp('== END ==')
+
+diary off;
+
 %save AAMC212_metric4 % file saving moved to master file
 
 filename = ['AAMC_' aggressistring '_metric7_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
