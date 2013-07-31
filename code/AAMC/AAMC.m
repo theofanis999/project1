@@ -244,6 +244,9 @@
 % 01.08.13 01:01
 % Reverted to old-fashioned METRIC7:by far the best!!
 %%%%%%%%%%%%%%%%%%
+% 01.08.13 01:01
+% Made script callable as AAMC(T,aggressiveness,iterations)
+%%%%%%%%%%%%%%%%%%
 
 function []=AAMC(T,aggressiveness,iterations);
 %clear
