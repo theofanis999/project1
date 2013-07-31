@@ -238,7 +238,14 @@
 % 18.07.13 16:27
 % Commented out the *clc* line at the beginning
 %%%%%%%%%%%%%%%%%%
-function []=AAMC(aggressiveness,iterations);
+% 01.08.13 00:14
+% Introduced METRIC8 & matrix NO_TIE
+%%%%%%%%%%%%%%%%%%
+% 01.08.13 01:01
+% Reverted to old-fashioned METRIC7:by far the best!!
+%%%%%%%%%%%%%%%%%%
+
+function []=AAMC(T,aggressiveness,iterations);
 %clear
 %clc
 
@@ -261,7 +268,7 @@ STATES = [1 2 3 4 5 6];
 N = 50; % number of nodes
 N2 = N*N;
 % b0 = BETAS(10); % original beta
-T = 80; % number of temporal iterations
+%T = 80; % number of temporal iterations
 I = 1; % number of originally infected nodes
 loss = 0.8; % this is essentially BER (attention, not PER!!)
 %gaussianoise = randn(1);   %no need to define here
@@ -295,7 +302,7 @@ if aggressiveness == 1
 else if aggressiveness == 2
         aggressistring = 'conservative';
     else
-        aggressistring = 'sleepy';
+        aggressistring = 'lazy';
     end
 end
 
@@ -507,6 +514,7 @@ end % node11 ...is an index only
        end        
         
         DUPRATE_NO_TIE_INS = 0.01*abs(randn(N,T));
+        NO_TIE = 1+0.01*abs(randn(N,T));
 %         DUPRATE_NO_TIE_INS = zeros(N,T);        
         DUPRATE_NO_TIE = zeros(N,T);
         
@@ -586,9 +594,7 @@ end % node11 ...is an index only
 %             BDET(t,node) = b0; % BDET(= beta detailed) like B(node) but keeps temporal evolution too
             BDET(t,node) = B(node); % BDET(= beta detailed) like B(node) but keeps temporal evolution too            
         end
-        
-        MODESTART = MODE;      
-        
+              
         for policyindex=1:4
             POLICYCHOSEN(node,policyindex) = 0;
         end
@@ -606,6 +612,8 @@ end % node11 ...is an index only
         end
         
     end
+    
+            MODESTART = MODE;   
     
             % Decision matrix initialization    
         for a = 1:N;        % number of nodes
@@ -842,8 +850,7 @@ end
     AVENOISET(i,t) = mean(RECENTNOISE(i,t-swindow:t));
     RECENTUT(i,t-swindow:t) = U(i,t-swindow:t);
     AVEUT(i,t) = mean(RECENTUT(i,t-swindow:t));
-    DUPRATE_NO_TIE(i,t) = mean(DUPRATE_NO_TIE_INS(i,t-fix(0.2*swindow):t));
-    
+    DUPRATE_NO_TIE(i,t) = mean(DUPRATE_NO_TIE_INS(i,t-fix(0.2*swindow):t));    
     
 % End of sliding window calculation
 
@@ -929,13 +936,15 @@ end
   for policyindexx  = 1:4;
 %    METRIC1(policyindexx,i) = PINF(policyindexx,i)/ENERGYSPENTCALC(policyindexx,i);
 %    METRIC2(policyindexx,i) = PINF(policyindexx,i);
-     METRIC4(policyindexx,i) = PINF(policyindexx,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
-     METRIC45(policyindexx,i) = PINF(policyindexx,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+%     METRIC4(policyindexx,i) = PINF(policyindexx,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+%     METRIC45(policyindexx,i) = PINF(policyindexx,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
 %    METRIC5(policyindexx,i) = PINF(policyindexx,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*(t+1));  % modification to include the next time slot
 %    METRIC3(policyindexx,i) = PINF(policyindexx,i)*(maxcostsingle-ENERGYSPENTCALC(policyindexx,i));  % 2*10^7 is an arbitary maximum cost
 %    METRIC6(policyindexx,i) = DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t);
-%    METRIC7(policyindexx,i) = DUPRATE_NO_TIE(i,t) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+     METRIC7(policyindexx,i) = DUPRATE_NO_TIE(i,t) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
 %    METRIC7(policyindexx,i) = DUPRATE_NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+%   METRIC8(policyindexx,i) = NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));
+
   end
 %   if changes_count(i,max(1,t-1))~=0
 %       disp('PLOF-PLOF!!');
@@ -948,14 +957,18 @@ end
  % Calculate expected Utility over all possible future choices
  %  UUNCH(i,t) = 0.25*(METRIC6(1,i) + METRIC6(2,i) + METRIC6(3,i) + METRIC6(4,i) );
  % UUNCH(i,t) = (SSS(i,1)/t)*METRIC6(1,i) + (SSS(i,2)/t)*METRIC6(2,i) + (SSS(i,3)/t)*METRIC6(3,i) + (SSS(i,4)/t)*METRIC6(4,i);
- UUNCH(i,t) = (SSS(i,1)/t)*METRIC4(1,i) + (SSS(i,2)/t)*METRIC4(2,i) + (SSS(i,3)/t)*METRIC4(3,i) + (SSS(i,4)/t)*METRIC4(4,i);
+% UUNCH(i,t) = (SSS(i,1)/t)*METRIC4(1,i) + (SSS(i,2)/t)*METRIC4(2,i) + (SSS(i,3)/t)*METRIC4(3,i) + (SSS(i,4)/t)*METRIC4(4,i);
+ UUNCH(i,t) = (SSS(i,1)/t)*METRIC7(1,i) + (SSS(i,2)/t)*METRIC7(2,i) + (SSS(i,3)/t)*METRIC7(3,i) + (SSS(i,4)/t)*METRIC7(4,i);
+% UUNCH(i,t) = (SSS(i,1)/t)*METRIC8(1,i) + (SSS(i,2)/t)*METRIC8(2,i) + (SSS(i,3)/t)*METRIC8(3,i) + (SSS(i,4)/t)*METRIC8(4,i);
 
  %
   
   for jjj = 1:4                  % policy index
 %       MMM(jjj) = METRIC3(jjj,i);  % Vector with policies of the current node
 %       MMM(jjj) = METRIC6(jjj,i);  % Vector with policies of the current node
-      MMM(jjj) = METRIC4(jjj,i);  % Vector with policies of the current node
+%       MMM(jjj) = METRIC4(jjj,i);  % Vector with policies of the current node
+       MMM(jjj) = METRIC7(jjj,i);  % Vector with policies of the current node
+%       MMM(jjj) = METRIC8(jjj,i);  % Vector with policies of the current node      
 
   end
   
@@ -968,10 +981,12 @@ end
         
         for pindex  = 1:4;              % yes, policy index
            %    if metric == PINF(pindex,i)*(maxcostsingle-ENERGYSPENTCALC(pindex,i))  %  mitrechnen Energie & Infekzionprobabilitaet METRIC3
-               if metric == PINF(pindex,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1)); % METRIC 4
+           %    if metric == PINF(pindex,i) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1)); % METRIC 4
+           %    if metric == NO_TIE(i,t) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1)); % METRIC 8    
            %    if metric == PINF(pindex,i) - (ENERGYSPENT(i)+ENERGYSPENTCALC(policyindexx,i))/(maxcostsingle*(t+1)); % modif 2 inc next t-slot METRIC5
            %    if metric == DUPRATE(i) - ENERGYSPENT(i)/(maxcostsingle*t); % METRIC6
-					 %	if metric == DUPRATE_NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(pindex,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));  % METRIC7
+		   %	if metric == DUPRATE_NO_TIE(i,t) - (ENERGYSPENT(i)+ENERGYSPENTCALC(pindex,i))/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));  % METRIC7
+		    	if metric == DUPRATE_NO_TIE(i,t) - ENERGYSPENT(i)/(maxcostsingle*t)-changes_count(i,max(1,t-1))/(max(1,t-1));   % METRIC7
          
                     % Calculation of potential benefit/reward/utility - start
                     
@@ -1202,7 +1217,7 @@ hour=num2str(xx(4));
 minu=num2str(xx(5));
 aggress=num2str(aggressiveness);
 filenamepart = ['AAMC_' aggressistring];
-diary(strcat(filenamepart,'_metric4_',num2str(iterations),'_',date,'_',hour,'_',minu,'.csv'));
+diary(strcat(filenamepart,'_metric7_',num2str(iterations),'_',date,'_',hour,'_',minu,'.csv'));
 
 diary on;
 
@@ -1511,11 +1526,11 @@ ER = sum(ERRRATEI,1)/iterations;
 disp('=========');
 disp(' AGGRESSIVENESS WAS ');
 disp(aggressistring);
-disp('===OUR SCHEME W/ METRIC METRIC4===');
+disp('===OUR SCHEME W/ METRIC METRIC8===');
 disp('== END ==')
 %save AAMC212_metric4 % file saving moved to master file
 
-filename = ['AAMC_' aggressistring '_metric4_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
+filename = ['AAMC_' aggressistring '_metric7_' num2str(iterations) '_' date '_' hour '_' minu '.mat'];
 save(filename);
 
 end % to end function call
